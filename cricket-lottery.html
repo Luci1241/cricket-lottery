@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Weighted Batting Order Generator</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 2rem auto; }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+    th, td { border: 1px solid #ccc; padding: 0.5rem; }
+    input[type=number] { width: 3rem; }
+    button { margin: 0 0.25rem; padding: 0.4rem 0.8rem; }
+  </style>
+</head>
+<body>
+  <h2>Cricket Batting Order Lottery</h2>
+
+  <label>
+    Max Overs per Bowler:
+    <input id="maxOvers" type="number" min="1" value="10">
+  </label>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Player</th>
+        <th>Overs Bowled</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="playerBody">
+      <!-- Rows get injected here -->
+    </tbody>
+  </table>
+
+  <button id="addSub">+ Add Sub</button>
+  <button id="generate">Generate Batting Order</button>
+
+  <h3>Result</h3>
+  <ol id="result"></ol>
+
+  <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const tbody = document.getElementById('playerBody');
+
+    // 1. Populate initial 11 players
+    for (let i = 0; i < 11; i++) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input class="name" value="Player ${i + 1}"></td>
+        <td><input type="number" class="bowled" min="0" value="0"></td>
+        <td><button class="remove">–</button></td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    // 2. Handle “–” remove button
+    tbody.addEventListener('click', e => {
+      if (e.target.classList.contains('remove')) {
+        const row = e.target.closest('tr');
+        tbody.removeChild(row);
+      }
+    });
+
+    // 3. Add Sub button
+    document.getElementById('addSub').addEventListener('click', () => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input class="name" placeholder="Substitute"></td>
+        <td><input type="number" class="bowled" min="0" value="0"></td>
+        <td><button class="remove">–</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    // 4. Generate batting order
+    document.getElementById('generate').addEventListener('click', () => {
+      const maxO = +document.getElementById('maxOvers').value;
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      const players = rows.map(r => r.querySelector('.name').value.trim() || 'Unnamed');
+      const bowled  = rows.map(r => +r.querySelector('.bowled').value || 0);
+
+      // Build weighted ticket pool
+      let pool = [];
+      players.forEach((p, i) => {
+        // baseline of 1 ticket
+        const tickets = Math.max(1, (maxO - bowled[i]) + 1);
+        for (let t = 0; t < tickets; t++) {
+          pool.push(p);
+        }
+      });
+
+      // Draw without replacement
+      const order = [];
+      let working = pool.slice();
+      while (order.length < players.length) {
+        const idx = Math.floor(Math.random() * working.length);
+        const pick = working[idx];
+        order.push(pick);
+        // remove all tickets for that player
+        working = working.filter(name => name !== pick);
+      }
+
+      // Display result
+      const ol = document.getElementById('result');
+      ol.innerHTML = order.map(name => `<li>${name}</li>`).join('');
+    });
+  });
+  </script>
+</body>
+</html>
